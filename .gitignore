@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Production builds
+dist/
+frontend/dist/
+build/
+
+# Environment variables & secrets (NEVER COMMIT SENSITIVE KEYS)
+.env
+.env.*
+*.env
+*.env.*
+backend/.env
+frontend/.env
+frontend/.env.production
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+*.pem
+
+# Local data & temporary deployment files
+backend/data/
+backend-deploy-temp/
+*.zip
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.log
+
+# Editor & OS files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Storage / Temp uploads
+uploads/
+temp/
+scratch/

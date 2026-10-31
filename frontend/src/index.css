@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased font-sans;
+  }
+}
+
+/* Custom smooth scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600;
+}
+
+/* Subtle glow and pulse animations */
+@keyframes wavePulse {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.animate-waveform-1 {
+  animation: wavePulse 1.2s ease-in-out infinite;
+}
+.animate-waveform-2 {
+  animation: wavePulse 0.9s ease-in-out infinite 0.2s;
+}
+.animate-waveform-3 {
+  animation: wavePulse 1.4s ease-in-out infinite 0.4s;
+}
+.animate-waveform-4 {
+  animation: wavePulse 1.0s ease-in-out infinite 0.1s;
+}
+.animate-waveform-5 {
+  animation: wavePulse 1.3s ease-in-out infinite 0.3s;
+}

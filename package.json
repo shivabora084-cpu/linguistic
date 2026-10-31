@@ -1,0 +1,14 @@
+{
+  "name": "linguamate-ai",
+  "version": "1.0.0",
+  "description": "LinguaMate AI - Unified Multilingual Conversational Intelligence Platform",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm start"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
