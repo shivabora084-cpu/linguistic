@@ -92,3 +92,4 @@ export const AppTabs: React.FC = () => {
     </Tab.Navigator>
   );
 };
+

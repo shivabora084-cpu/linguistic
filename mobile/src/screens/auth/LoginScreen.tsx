@@ -51,7 +51,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const fillDemoUser = () => {
     setEmail('demo@linguamate.ai');
     setPassword('demo123');
-    handleLogin('demo@linguamate.ai', 'demo123');
+    setError(null);
   };
 
   return (
@@ -101,7 +101,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             disabled={loading}
           >
             <Ionicons name="sparkles" size={16} color={COLORS.primary} />
-            <Text style={styles.demoBtnText}>One-Tap Demo Login (demo@linguamate.ai)</Text>
+            <Text style={styles.demoBtnText}>Prefill Demo Account (demo@linguamate.ai)</Text>
           </TouchableOpacity>
 
           {/* Error Banner */}
@@ -363,3 +363,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+

@@ -4,10 +4,7 @@ import apiClient from '../api/client';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('linguamate_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('linguamate_token') || null);
   const [preferences, setPreferences] = useState({
     speech_rate: 1.0,
@@ -18,34 +15,43 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch current profile & preferences on startup if token exists
+  // Strictly verify session with backend /auth/me on startup
   useEffect(() => {
     const initAuth = async () => {
-      if (token) {
+      const storedToken = localStorage.getItem('linguamate_token');
+      if (storedToken) {
         try {
           const res = await apiClient.get('/auth/me');
-          if (res.success) {
+          if (res?.success && res?.user) {
             setUser(res.user);
+            setToken(storedToken);
             localStorage.setItem('linguamate_user', JSON.stringify(res.user));
             if (res.preferences) {
               setPreferences(res.preferences);
             }
-          }
-        } catch (err) {
-          console.warn('[Auth init failed]:', err.message);
-          if (err.status === 401 || err.status === 403) {
+          } else {
             setToken(null);
             setUser(null);
             localStorage.removeItem('linguamate_token');
             localStorage.removeItem('linguamate_user');
           }
+        } catch (err) {
+          console.warn('[Auth verification rejected]:', err.message);
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('linguamate_token');
+          localStorage.removeItem('linguamate_user');
         }
+      } else {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('linguamate_user');
       }
       setLoading(false);
     };
 
     initAuth();
-  }, [token]);
+  }, []);
 
   const login = async (email, password) => {
     const res = await apiClient.post('/auth/login', { email, password });

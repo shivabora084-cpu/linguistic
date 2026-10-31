@@ -29,3 +29,4 @@ export const SUPPORTED_LANGUAGES: Language[] = [
 export const getLanguageByCode = (code: string): Language => {
   return SUPPORTED_LANGUAGES.find((l) => l.code.toLowerCase() === code.toLowerCase()) || SUPPORTED_LANGUAGES[1];
 };
+

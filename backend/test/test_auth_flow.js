@@ -71,28 +71,42 @@ async function test() {
   const r2 = await post('/auth/login', { email: 'admin@linguamate.ai', password: 'admin123' });
   console.log('Admin Login Status:', r2.status, '| Role:', r2.body.user?.role, '| Name:', r2.body.user?.fullName);
 
-  console.log('--- 3. Testing Shorthand (demo) Login ---');
-  const r3 = await post('/auth/login', { email: 'demo', password: 'demo123' });
-  console.log('Shorthand Login Status:', r3.status, '| User:', r3.body.user?.email);
+  console.log('--- 3. Testing Unregistered User Login Rejection (No Auto-Provisioning) ---');
+  const unregEmail = `unregistered_${Date.now()}@example.com`;
+  const r3 = await post('/auth/login', { email: unregEmail, password: 'password123' });
+  console.log('Unregistered User Status:', r3.status, '(Expected: 401)', '| Error:', r3.body.error);
+  if (r3.status !== 401) {
+    throw new Error(`Expected 401 for unregistered user, got ${r3.status}`);
+  }
 
   console.log('--- 4. Testing Profile (/auth/me) with JWT ---');
   const r4 = await get('/auth/me', r1.body.token);
   console.log('/auth/me Status:', r4.status, '| Name:', r4.body.user?.fullName, '| Role:', r4.body.user?.role);
 
-  console.log('--- 5. Testing Auto-Provisioning New User Login ---');
-  const r5 = await post('/auth/login', { email: 'tester@hackathon.com', password: 'password123' });
-  console.log('New User Status:', r5.status, '| User:', r5.body.user?.email, '| Name:', r5.body.user?.fullName);
-
-  console.log('--- 6. Testing Standard Registration ---');
-  const r6 = await post('/auth/register', {
-    email: 'registered_user@example.com',
+  console.log('--- 5. Testing Standard Registration ---');
+  const newEmail = `flow_user_${Date.now()}@example.com`;
+  const r5 = await post('/auth/register', {
+    email: newEmail,
     password: 'password123',
     fullName: 'Jane Doe',
     preferredLanguage: 'ta',
   });
-  console.log('Register Status:', r6.status, '| User:', r6.body.user?.email, '| Name:', r6.body.user?.fullName);
+  console.log('Register Status:', r5.status, '| User:', r5.body.user?.email, '| Name:', r5.body.user?.fullName);
+  if (r5.status !== 201) {
+    throw new Error(`Expected 201 for registration, got ${r5.status}`);
+  }
 
-  console.log('\nAll Auth Flows Verified Successfully!');
+  console.log('--- 6. Testing Newly Registered User Login ---');
+  const r6 = await post('/auth/login', { email: newEmail, password: 'password123' });
+  console.log('Login Status:', r6.status, '| Success:', r6.body.success);
+  if (r6.status !== 200) {
+    throw new Error(`Expected 200 for new user login, got ${r6.status}`);
+  }
+
+  console.log('\nAll Auth Flows Verified Successfully with Strict Security!');
 }
 
-test().catch(console.error);
+test().catch((err) => {
+  console.error('Test error:', err);
+  process.exit(1);
+});

@@ -31,20 +31,10 @@ export const LoginPage = () => {
     }
   };
 
-  const handleQuickLogin = async (demoEmail, demoPassword) => {
+  const handlePrefillCredentials = (demoEmail, demoPassword) => {
     setEmail(demoEmail);
     setPassword(demoPassword);
     setError('');
-    setLoading(true);
-
-    try {
-      await login(demoEmail, demoPassword);
-      navigate(destination, { replace: true });
-    } catch (err) {
-      setError(err.message || 'Login failed.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -65,29 +55,29 @@ export const LoginPage = () => {
         <div className="p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-navy-900 shadow-xl space-y-5">
           {error && <ErrorMessage message={error} />}
 
-          {/* Quick 1-Click Demo Login Banner */}
-          <div className="p-3 rounded-xl bg-brand-50/60 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800 space-y-2">
-            <div className="text-[11px] font-semibold text-brand-700 dark:text-brand-300 uppercase tracking-wide flex items-center space-x-1.5">
-              <Zap className="w-3.5 h-3.5" />
-              <span>Instant 1-Click Demo Access</span>
+          {/* Demo Credentials Prefill Helper */}
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-navy-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+            <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide flex items-center space-x-1.5">
+              <Zap className="w-3.5 h-3.5 text-brand-500" />
+              <span>Registered Demo Credentials (Click to prefill)</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => handleQuickLogin('demo@linguamate.ai', 'demo123')}
-                className="py-2 px-2.5 text-xs font-semibold rounded-lg border border-brand-300 dark:border-brand-700 bg-white dark:bg-navy-900 text-brand-600 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-900/50 shadow-sm transition active:scale-95 disabled:opacity-50 text-center"
+                onClick={() => handlePrefillCredentials('demo@linguamate.ai', 'demo123')}
+                className="py-2 px-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:border-brand-500 dark:hover:border-brand-400 shadow-sm transition active:scale-95 disabled:opacity-50 text-center"
               >
-                ⚡ User Demo
+                demo@linguamate.ai
               </button>
               <button
                 type="button"
                 disabled={loading}
-                onClick={() => handleQuickLogin('admin@linguamate.ai', 'admin123')}
-                className="py-2 px-2.5 text-xs font-semibold rounded-lg border border-amber-300 dark:border-amber-800 bg-white dark:bg-navy-900 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/50 shadow-sm transition active:scale-95 disabled:opacity-50 text-center flex items-center justify-center space-x-1"
+                onClick={() => handlePrefillCredentials('admin@linguamate.ai', 'admin123')}
+                className="py-2 px-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-navy-900 text-slate-700 dark:text-slate-300 hover:border-amber-500 dark:hover:border-amber-400 shadow-sm transition active:scale-95 disabled:opacity-50 text-center flex items-center justify-center space-x-1"
               >
                 <Shield className="w-3 h-3 text-amber-500" />
-                <span>Admin Demo</span>
+                <span>admin@linguamate.ai</span>
               </button>
             </div>
           </div>

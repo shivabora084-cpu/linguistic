@@ -18,3 +18,4 @@ export type AppTabParamList = {
   HistoryTab: undefined;
   SettingsTab: undefined;
 };
+

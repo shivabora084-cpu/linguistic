@@ -101,6 +101,58 @@ npm run dev
 ```bash
 cd mobile
 npm install
+npm run start
+# Press 'a' for Android emulator or 'w' for Web preview
+# Run mobile test suite: node test/mobile.test.mjs
+```
+
+---
+
+## 🔒 Authentication & Security Architecture
+
+LinguaMate AI enforces strict, production-ready credential authentication with zero bypasses:
+
+### 1. Registration (`POST /api/auth/register`)
+- Requires `email`, `password` (min 6 characters), `fullName` (min 2 characters), and optional `preferredLanguage` & `role`.
+- Validates payload format via Zod schemas.
+- Checks Supabase `profiles` and local cache for duplicate accounts; returns `409 Conflict` if the email is already registered.
+- Hashes passwords using `bcrypt` (10 salt rounds).
+- Creates a user record in Supabase `profiles` and seeds user preferences in `user_preferences`.
+- Issues a signed JSON Web Token (JWT) valid for 7 days.
+
+### 2. Login Verification (`POST /api/auth/login`)
+- Strictly verifies credentials against Supabase `profiles` / bcrypt hash.
+- **No Auto-Provisioning**: Unregistered email addresses are rejected with `401 Unauthorized` (`"Account not found. Please register an account first before logging in."`).
+- **No Password Bypass**: Incorrect passwords return `401 Unauthorized` (`"Invalid email or password. Please check your credentials."`).
+- **No Demo Pass-through**: Demo accounts (`demo@linguamate.ai`, `admin@linguamate.ai`) are stored with real bcrypt hashes and verified strictly with bcrypt.
+
+### 3. Session Persistence & Startup Introspection (`GET /api/auth/me`)
+- The web application and mobile client do NOT trust cached usernames or arbitrary localStorage values as proof of authentication.
+- On startup, `AuthContext` contacts `/api/auth/me` with the stored JWT token.
+- If the token is invalid, expired, or tampered with, the backend returns `401 Unauthorized`, and the frontend cleans up all stored tokens and user state immediately.
+
+### 4. Route Protection (`ProtectedRoute`)
+- Unauthenticated access to `/app/*` routes is blocked by `ProtectedRoute`.
+- Users navigating directly to protected URLs are redirected to `/login` with location memory (`state.from`), ensuring they return to their requested page only after entering valid registered credentials.
+
+### 5. Running Auth Security Tests
+```bash
+cd backend
+node test/test_auth_security.mjs
+# Verifies:
+#  ✓ Unregistered login rejection (401)
+#  ✓ New user registration (201)
+#  ✓ Duplicate registration block (409)
+#  ✓ Wrong password rejection (401)
+#  ✓ Registered user login (200)
+#  ✓ Session persistence check (/auth/me)
+#  ✓ Tampered token rejection (401)
+#  ✓ Protected API rejection without token (401)
+#  ✓ Demo account password validation (401 / 200)
+```
+```bash
+cd mobile
+npm install
 # Set the backend URL in .env or EXPO_PUBLIC_API_BASE_URL (defaults to http://localhost:5000/api)
 npm start
 # Press 'a' to open on Android Emulator, or scan QR code with Expo Go on physical device

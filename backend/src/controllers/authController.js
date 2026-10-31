@@ -139,7 +139,7 @@ export const register = async (req, res, next) => {
         if (existingUser) {
           return res.status(409).json({
             success: false,
-            error: 'An account with this email already exists.',
+            error: 'An account with this email already exists. Please log in.',
           });
         }
 
@@ -162,6 +162,18 @@ export const register = async (req, res, next) => {
             user_id: newProfile.id,
             target_language: preferredLanguage || 'en',
           }).catch(() => {});
+
+          // Mirror into local cache
+          localProfiles.set(normalizedEmail, {
+            id: newProfile.id,
+            email: newProfile.email,
+            passwordHash,
+            full_name: newProfile.full_name,
+            role: newProfile.role,
+            preferred_language: newProfile.preferred_language,
+            created_at: newProfile.created_at || new Date().toISOString(),
+          });
+          saveProfilesToDisk();
 
           const token = jwt.sign(
             {
@@ -202,6 +214,17 @@ export const register = async (req, res, next) => {
 
           if (uError) throw uError;
 
+          localProfiles.set(normalizedEmail, {
+            id: newUser.id,
+            email: newUser.email,
+            passwordHash,
+            full_name: newUser.name,
+            role: newUser.role,
+            preferred_language: newUser.preferred_language,
+            created_at: newUser.created_at || new Date().toISOString(),
+          });
+          saveProfilesToDisk();
+
           const token = jwt.sign(
             {
               id: newUser.id,
@@ -232,7 +255,14 @@ export const register = async (req, res, next) => {
       }
     }
 
-    // Zero-DB Fallback Mode
+    // Local / Zero-DB Mode: check duplicate
+    if (localProfiles.has(normalizedEmail)) {
+      return res.status(409).json({
+        success: false,
+        error: 'An account with this email already exists. Please log in.',
+      });
+    }
+
     const mockId = 'user-' + Date.now();
     const mockUser = {
       id: mockId,
@@ -279,14 +309,22 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email and password are required.',
+      });
+    }
+
     let normalizedEmail = (email || '').toLowerCase().trim();
     if (!normalizedEmail.includes('@')) {
       normalizedEmail = `${normalizedEmail}@linguamate.ai`;
     }
 
+    let profile = null;
+
     if (supabase) {
       try {
-        let profile = null;
         const { data: pData } = await supabase
           .from('profiles')
           .select('*')
@@ -312,108 +350,89 @@ export const login = async (req, res, next) => {
             };
           }
         }
-
-        if (profile) {
-          const isValidPassword = await bcrypt.compare(password, profile.password_hash);
-          if (isValidPassword) {
-            const token = jwt.sign(
-              {
-                id: profile.id,
-                email: profile.email,
-                role: profile.role,
-                fullName: profile.full_name,
-              },
-              config.jwt.secret,
-              { expiresIn: config.jwt.expiresIn || '7d' }
-            );
-
-            return res.json({
-              success: true,
-              message: 'Logged in successfully',
-              token,
-              user: {
-                id: profile.id,
-                email: profile.email,
-                fullName: profile.full_name,
-                full_name: profile.full_name,
-                role: profile.role,
-                preferredLanguage: profile.preferred_language,
-              },
-            });
-          }
-        }
       } catch (loginErr) {
         console.warn('[Auth Login DB Warning]:', loginErr.message);
       }
     }
 
-    // Zero-DB Fallback / Local Mode
-    let user = localProfiles.get(normalizedEmail);
-
-    if (user) {
-      // Check password
-      const isValid = await bcrypt.compare(password, user.passwordHash);
-      if (!isValid) {
-        // Special case for demo convenience: if user forgot local test password, allow demo accounts
-        if (
-          (normalizedEmail === 'demo@linguamate.ai' && password === 'demo123') ||
-          (normalizedEmail === 'admin@linguamate.ai' && password === 'admin123')
-        ) {
-          // Pass through
-        } else {
-          return res.status(401).json({
-            success: false,
-            error: 'Invalid password. Please check your credentials.',
-          });
-        }
+    // 1. If user found in database
+    if (profile) {
+      const isValidPassword = await bcrypt.compare(password, profile.password_hash);
+      if (!isValidPassword) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid email or password. Please check your credentials.',
+        });
       }
-    } else {
-      // Auto-provision account on first login in development / zero-DB mode
-      const mockId = 'user-' + Date.now();
-      const newHash = await bcrypt.hash(password, 10);
-      const isRoleAdmin = normalizedEmail.includes('admin');
-      const namePart = normalizedEmail.split('@')[0];
-      const displayName = namePart
-        .replace(/[^a-zA-Z0-9]/g, ' ')
-        .replace(/\b\w/g, (l) => l.toUpperCase());
 
-      user = {
-        id: mockId,
-        email: normalizedEmail,
-        passwordHash: newHash,
-        full_name: displayName,
-        role: isRoleAdmin ? 'admin' : 'user',
-        preferred_language: 'en',
-        created_at: new Date().toISOString(),
-      };
+      const token = jwt.sign(
+        {
+          id: profile.id,
+          email: profile.email,
+          role: profile.role,
+          fullName: profile.full_name,
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn || '7d' }
+      );
 
-      localProfiles.set(normalizedEmail, user);
-      saveProfilesToDisk();
+      return res.json({
+        success: true,
+        message: 'Logged in successfully',
+        token,
+        user: {
+          id: profile.id,
+          email: profile.email,
+          fullName: profile.full_name,
+          full_name: profile.full_name,
+          role: profile.role,
+          preferredLanguage: profile.preferred_language || 'en',
+        },
+      });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        fullName: user.full_name,
-      },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn || '7d' }
-    );
+    // 2. Check local fallback profiles (e.g. pre-seeded demo/admin or locally registered accounts)
+    const localUser = localProfiles.get(normalizedEmail);
+    if (localUser) {
+      const isValid = await bcrypt.compare(password, localUser.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid email or password. Please check your credentials.',
+        });
+      }
 
-    return res.json({
-      success: true,
-      message: 'Logged in successfully',
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        full_name: user.full_name,
-        role: user.role,
-        preferredLanguage: user.preferred_language || 'en',
-      },
+      const token = jwt.sign(
+        {
+          id: localUser.id,
+          email: localUser.email,
+          role: localUser.role,
+          fullName: localUser.full_name,
+        },
+        config.jwt.secret,
+        { expiresIn: config.jwt.expiresIn || '7d' }
+      );
+
+      return res.json({
+        success: true,
+        message: 'Logged in successfully',
+        token,
+        user: {
+          id: localUser.id,
+          email: localUser.email,
+          fullName: localUser.full_name,
+          full_name: localUser.full_name,
+          role: localUser.role,
+          preferredLanguage: localUser.preferred_language || 'en',
+        },
+      });
+    }
+
+    // 3. User does NOT exist in Supabase and does NOT exist in local profiles:
+    // STRICT 401 REJECTION! Do NOT auto-provision!
+    return res.status(401).json({
+      success: false,
+      error: 'Account not found. Please register an account first before logging in.',
     });
   } catch (err) {
     next(err);
@@ -425,19 +444,26 @@ export const getMe = async (req, res, next) => {
     const userId = req.user?.id;
     const userEmail = (req.user?.email || '').toLowerCase().trim();
 
-    if (supabase) {
+    if (!userId && !userEmail) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication token required or session expired.',
+      });
+    }
+
+    if (supabase && userId) {
       const { data: profile, error: profileErr } = await supabase
         .from('profiles')
         .select('id, email, full_name, role, preferred_language, created_at')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!profileErr && profile) {
         const { data: preferences } = await supabase
           .from('user_preferences')
           .select('*')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
         return res.json({
           success: true,
@@ -474,6 +500,13 @@ export const getMe = async (req, res, next) => {
       }
     }
 
+    if (!foundUser && !req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User profile not found. Please log in again.',
+      });
+    }
+
     const userName = foundUser?.full_name || req.user?.fullName || req.user?.full_name || 'LinguaMate User';
     const userRole = foundUser?.role || req.user?.role || 'user';
     const userLang = foundUser?.preferred_language || 'en';
@@ -490,8 +523,8 @@ export const getMe = async (req, res, next) => {
     return res.json({
       success: true,
       user: {
-        id: userId || 'demo-user',
-        email: userEmail || 'demo@linguamate.ai',
+        id: userId || foundUser?.id,
+        email: userEmail || foundUser?.email,
         fullName: userName,
         full_name: userName,
         role: userRole,

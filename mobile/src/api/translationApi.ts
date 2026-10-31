@@ -54,3 +54,4 @@ export const translationApi = {
     return res.data;
   },
 };
+

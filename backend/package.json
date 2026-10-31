@@ -10,7 +10,7 @@
     "dev": "node --watch src/server.js",
     "test": "node test/api.test.js",
     "test:supabase": "node test/test_supabase_connection.js",
-    "test:auth": "node test/test_auth_flow.js",
+    "test:auth": "node test/test_auth_security.mjs",
     "test:suite": "node test/verification_suite.js",
     "test:fast": "node test/test_super_fast_mode.js"
   },
