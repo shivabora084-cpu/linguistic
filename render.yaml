@@ -3,8 +3,8 @@ services:
     name: linguamate-ai
     env: node
     plan: free
-    buildCommand: npm install --prefix backend
-    startCommand: node backend/src/server.js
+    buildCommand: npm run build
+    startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -34,3 +34,20 @@ services:
         value: browser
       - key: TTS_PROVIDER
         value: browser
+
+  - type: static
+    name: linguamate-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 26.13.0
+      - key: VITE_API_BASE_URL
+        sync: false

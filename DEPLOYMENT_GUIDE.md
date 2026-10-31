@@ -29,22 +29,34 @@ This guide covers deploying the backend to **Render** and the frontend to **Netl
 
 ---
 
-## 1. Backend Deployment (Render)
+## 1. Backend & Fullstack Deployment (Render)
 
-### Step 1: Connect GitHub Repository
-1. Log into your [Render Dashboard](https://dashboard.render.com/).
-2. Click **New +** → **Web Service**.
-3. Select and connect your LinguaMate AI GitHub repository.
+Render supports two deployment patterns for LinguaMate AI:
 
-### Step 2: Configure Service Settings
-- **Name**: `linguamate-backend` (or any preferred name)
-- **Region**: Closest to your users (e.g. Frankfurt, Oregon, Singapore)
+### Pattern A: Unified Fullstack Service (Recommended on Render)
+Deploys both the backend API and the compiled React frontend together on a single Render URL:
+- **Root Directory**: `.` (leave blank or `./`)
+- **Environment**: `Node`
+- **Build Command**: `npm run build`
+  *(Installs backend and frontend dependencies, then compiles Vite into `frontend/dist`)*
+- **Start Command**: `npm start`
+  *(Runs `node backend/src/server.js`, which serves both `/api/*` and the frontend)*
+- **Health Check Path**: `/api/health`
+
+### Pattern B: Backend API Service Only (When Frontend is on Vercel)
 - **Root Directory**: `backend`
 - **Environment**: `Node`
 - **Build Command**: `npm install`
 - **Start Command**: `npm start`
 - **Health Check Path**: `/api/health`
-- **Instance Type**: `Free` or `Starter`
+
+### Troubleshooting `sh: 1: vite: not found` on Render:
+If you encountered this error during deployment:
+- **Root Cause**: In production mode (`NODE_ENV=production`), `npm install` skips `devDependencies`. When deploying from the root directory, `frontend/node_modules` wasn't initialized.
+- **Permanent Solution**:
+  1. `vite` is declared in `"dependencies"` in `frontend/package.json`.
+  2. Root `package.json` `"build"` script is chained: `npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend`.
+  3. In Render settings, ensure **Build Command** is set to `npm run build` and **Start Command** is `npm start`.
 
 ### Step 3: Add Environment Variables
 In the **Environment** tab, add the following key-value pairs:

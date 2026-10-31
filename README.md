@@ -150,19 +150,88 @@ If importing from the repository root, the included root [`vercel.json`](./verce
 
 ---
 
-### 2. Backend Deployment (Render)
-- **Root directory**: `backend`
+### 2. Fullstack & Backend Deployment (Render)
+
+Render can deploy LinguaMate AI in multiple configurations:
+
+#### Option A: Unified Fullstack Web Service (Recommended on Render)
+Builds and serves both the React Vite frontend and the Express Node.js API from a single Render Web Service:
+- **Repository**: `https://github.com/shivabora084-cpu/linguistic`
+- **Root Directory**: `.` (leave blank or `./`)
 - **Environment**: `Node`
-- **Build command**: `npm install`
-- **Start command**: `npm start`
-- **Health check path**: `/api/health`
-- **Environment variables**:
-  - `PORT`: `5000` (or `10000` per Render default)
-  - `NODE_ENV`: `production`
-  - `FRONTEND_URL`: `https://<your-vercel-app>.vercel.app` (or `*`)
-  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-  - `GEMINI_API_KEY`, `AI_MODEL`: `gemini-3.5-flash-lite`
-  - `JWT_SECRET`: Random 32+ character string
+- **Build Command**: `npm run build`
+  *(Automatically executes `npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend`)*
+- **Start Command**: `npm start`
+  *(Runs `node backend/src/server.js`, which serves both `/api/*` endpoints and the static frontend from `frontend/dist`)*
+- **Health Check Path**: `/api/health`
+
+#### Option B: Standalone Backend API on Render (Frontend on Vercel)
+If you deploy your frontend separately to Vercel, deploy just the backend API on Render:
+- **Root Directory**: `backend`
+- **Environment**: `Node`
+- **Build Command**: `npm install`
+- **Start Command**: `npm start`
+- **Health Check Path**: `/api/health`
+
+#### Option C: Standalone Frontend on Render (Static Site)
+If deploying the frontend as a Render Static Site:
+- **Root Directory**: `frontend`
+- **Build Command**: `npm install && npm run build`
+- **Publish Directory**: `dist`
+- **Routes / Rewrites**: Add rewrite rule `/*` → `/index.html`
+
+#### Required Environment Variables (Render Web Service):
+| Variable | Value / Description | Note |
+| :--- | :--- | :--- |
+| `NODE_ENV` | `production` | Production mode |
+| `PORT` | `10000` | Auto-provided by Render |
+| `FRONTEND_URL` | `*` (or your Vercel URL) | CORS allow list |
+| `GEMINI_API_KEY` | `AQ.Ab8RN6JTx...` | Google Gemini API Key |
+| `AI_MODEL` | `gemini-3.5-flash-lite` | Primary fast model |
+| `JWT_SECRET` | *(Random 32+ characters)* | Token encryption secret |
+| `JWT_EXPIRES_IN` | `7d` | Token lifetime |
+| `SUPABASE_URL` | `https://fhwzwdmxnwtjokvxlvzd.supabase.co` | Supabase endpoint |
+| `SUPABASE_ANON_KEY` | `eyJhbG...` | Supabase Anon Key |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbG...` | Supabase Service Role Key |
+| `STORAGE_BUCKET` | `linguamate-files` | Storage bucket name |
+| `STT_PROVIDER` | `browser` | Zero-latency Web Speech |
+| `TTS_PROVIDER` | `browser` | Zero-latency Web Speech |
+
+---
+
+## 🛠️ Render Troubleshooting Guide: Fixing `sh: 1: vite: not found`
+
+### 1. Root Cause Analysis
+The error:
+```bash
+> linguamate-frontend@1.0.0 build
+> vite build
+sh: 1: vite: not found
+==> Build failed
+```
+occurs when Render executes `vite build` without `vite` being present in `node_modules/.bin`. This happens due to two specific factors:
+1. **Missing Directory-Level Dependencies**: When deploying from the repository root, Render runs `npm install` in the root folder, leaving `frontend/node_modules` uninstalled unless explicit prefix commands are chained.
+2. **`NODE_ENV=production` devDependency Pruning**: In production environments, `npm install` skips packages listed under `devDependencies`. Because `vite` was previously in `devDependencies`, Render pruned it during installation.
+
+### 2. How This Issue Is Resolved In This Repository:
+1. **`vite` Moved to `dependencies`**: In [`frontend/package.json`](./frontend/package.json), `vite` and all frontend build tooling (`@vitejs/plugin-react`, `tailwindcss`, `postcss`, `autoprefixer`) are declared in `"dependencies"` so npm never skips them when `NODE_ENV=production`.
+2. **Self-Installing Root Build Command**: The root [`package.json`](./package.json) `"build"` script is updated to:
+   ```json
+   "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend"
+   ```
+   This guarantees that both backend and frontend packages are guaranteed to install before `vite build` runs.
+3. **Automated Blueprint Support**: [`render.yaml`](./render.yaml) is configured with `buildCommand: npm run build` and `startCommand: npm start`.
+
+### 3. Step-by-Step Fix in Render Dashboard:
+If you have an existing Web Service on Render that failed with `vite: not found`:
+1. Open your Web Service in the [Render Dashboard](https://dashboard.render.com/).
+2. Go to **Settings**.
+3. Verify your configuration:
+   - **Root Directory**: `.` (leave blank or clear it)
+   - **Build Command**: `npm run build`
+   - **Start Command**: `npm start`
+4. Click **Save Changes**.
+5. Click **Manual Deploy** → **Clear build cache & deploy**.
 
 ---
 
