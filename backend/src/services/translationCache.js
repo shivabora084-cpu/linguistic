@@ -1,4 +1,4 @@
-﻿/**
+/**
  * In-Memory Translation Cache with TTL and Performance Metrics Tracking
  */
 class TranslationCache {
@@ -15,13 +15,14 @@ class TranslationCache {
     };
   }
 
-  generateKey({ text, sourceLanguage = 'auto', targetLanguage = 'en', mode = 'standard', formality = 'auto' }) {
+  generateKey({ text, sourceLanguage = 'auto', targetLanguage = 'en', mode = 'standard', formality = 'auto', speedMode = 'balanced' }) {
     const normalizedText = (text || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const src = (sourceLanguage || 'auto').toLowerCase();
     const tgt = (targetLanguage || 'en').toLowerCase();
     const m = (mode || 'standard').toLowerCase();
     const f = (formality || 'auto').toLowerCase();
-    return `${src}:${tgt}:${m}:${f}:${normalizedText}`;
+    const sm = (speedMode || 'balanced').toLowerCase();
+    return `${src}:${tgt}:${m}:${f}:${sm}:${normalizedText}`;
   }
 
   get(key) {

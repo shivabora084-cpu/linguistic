@@ -377,6 +377,7 @@ export const translateAndExplain = async ({
   formality = 'auto',
   mode = 'standard',
   context = '',
+  speedMode = 'balanced',
 }) => {
   if (!text || !text.trim()) {
     return {
@@ -387,14 +388,15 @@ export const translateAndExplain = async ({
       culturalContext: '',
       alternativePhrases: [],
       mode,
+      speedMode,
     };
   }
 
   // 1. Check in-memory translation cache for instant response (safe public translation cache)
-  const cacheKey = translationCache.generateKey({ text, sourceLanguage, targetLanguage, mode, formality });
+  const cacheKey = translationCache.generateKey({ text, sourceLanguage, targetLanguage, mode, formality, speedMode });
   const cachedResult = translationCache.get(cacheKey);
   if (cachedResult && !context) {
-    return { ...cachedResult, cached: true };
+    return { ...cachedResult, cached: true, speedMode };
   }
 
   if (!genAI) {
@@ -406,7 +408,71 @@ export const translateAndExplain = async ({
       culturalContext: 'AI key required for cultural breakdown.',
       alternativePhrases: [],
       mode,
+      speedMode,
     };
+  }
+
+  // 2. Super Fast Mode Execution Pipeline (<500ms target, single concise JSON call)
+  if (speedMode === 'fast') {
+    const fastPrompt = `You are LinguaMate AI Super Fast Translation Engine.
+Translate the input accurately into target language "${targetLanguage}".
+Source Language: "${sourceLanguage}"
+Input: "${text}"
+
+Directives:
+1. Translate faithfully into authentic, natural ${targetLanguage}.
+2. Strictly preserve names, numbers, dates, currency, punctuation, and idioms.
+3. Output strictly valid JSON without conversational preamble:
+{"detectedSourceLanguage": "ISO-code", "translatedText": "translated text here"}`;
+
+    try {
+      const fastRes = await generateWithFallback(fastPrompt, {
+        isJson: true,
+        maxTokens: 512,
+      });
+      const parsed = safeParseJSON(fastRes.text);
+      const fastResult = {
+        detectedSourceLanguage: parsed.detectedSourceLanguage || sourceLanguage,
+        translatedText: parsed.translatedText || text,
+        literalTranslation: parsed.translatedText || text,
+        intendedMeaning: 'Super Fast Mode: low-latency direct translation.',
+        formalityLevel: formality,
+        culturalContext: 'Fast AI translation without conversational overhead.',
+        alternativePhrases: [],
+        confidenceScore: 0.98,
+        mode,
+        speedMode: 'fast',
+        modelUsed: fastRes.modelUsed,
+      };
+      translationCache.set(cacheKey, fastResult);
+      return fastResult;
+    } catch (fastErr) {
+      console.warn('[Super Fast Translation fallback triggered]:', fastErr.message);
+      try {
+        const directRes = await generateWithFallback(
+          `Translate accurately to ${targetLanguage}: "${text}". Output only the translated text.`,
+          { isJson: false, maxTokens: 256 }
+        );
+        const translated = directRes.text.trim().replace(/^["']|["']$/g, '');
+        const fastFallback = {
+          detectedSourceLanguage: sourceLanguage,
+          translatedText: translated,
+          literalTranslation: translated,
+          intendedMeaning: 'Super Fast direct translation.',
+          formalityLevel: formality,
+          culturalContext: '',
+          alternativePhrases: [],
+          confidenceScore: 0.92,
+          mode,
+          speedMode: 'fast',
+          modelUsed: directRes.modelUsed,
+        };
+        translationCache.set(cacheKey, fastFallback);
+        return fastFallback;
+      } catch (err) {
+        console.error('[Fast translation failed, falling through to balanced mode]:', err.message);
+      }
+    }
   }
 
   const modeDirectives = {

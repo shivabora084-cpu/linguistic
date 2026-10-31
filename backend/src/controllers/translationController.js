@@ -5,7 +5,15 @@ import { supabase } from '../database/supabaseClient.js';
 export const handleTranslate = async (req, res, next) => {
   const startTime = Date.now();
   try {
-    const { text, targetLanguage, sourceLanguage = 'auto', formality = 'auto', mode = 'standard', context = '' } = req.body;
+    const {
+      text,
+      targetLanguage,
+      sourceLanguage = 'auto',
+      formality = 'auto',
+      mode = 'standard',
+      context = '',
+      speedMode = 'balanced',
+    } = req.body;
     const userId = req.user?.id || null;
 
     const result = await translateAndExplain({
@@ -15,29 +23,42 @@ export const handleTranslate = async (req, res, next) => {
       formality,
       mode,
       context,
+      speedMode,
     });
 
+    const latencyMs = Date.now() - startTime;
+
+    // Asynchronous non-blocking analytics logging (does not delay response)
     if (supabase && userId) {
-      await supabase.from('analytics_events').insert({
+      const logPromise = supabase.from('analytics_events').insert({
         user_id: userId,
         event_type: 'translation',
         language: targetLanguage,
-        latency_ms: Date.now() - startTime,
+        latency_ms: latencyMs,
         metadata: {
           source_language: sourceLanguage,
           target_language: targetLanguage,
           formality,
           mode,
+          speedMode,
           cached: Boolean(result.cached),
         },
       });
+
+      if (speedMode === 'fast') {
+        // Non-blocking fire-and-forget for super fast mode
+        logPromise.catch((e) => console.warn('[Fast Analytics Insert Error]:', e.message));
+      } else {
+        await logPromise.catch(() => {});
+      }
     }
 
     return res.json({
       success: true,
       data: result,
       cached: Boolean(result.cached),
-      latencyMs: Date.now() - startTime,
+      latencyMs,
+      speedMode: result.speedMode || speedMode,
     });
   } catch (err) {
     next(err);

@@ -97,11 +97,26 @@ npm run dev
 # Frontend starts on http://localhost:5173
 ```
 
-### 4. Run Automated Tests
+### 4. Mobile App Setup (React Native + Expo)
 ```bash
+cd mobile
+npm install
+# Set the backend URL in .env or EXPO_PUBLIC_API_BASE_URL (defaults to http://localhost:5000/api)
+npm start
+# Press 'a' to open on Android Emulator, or scan QR code with Expo Go on physical device
+```
+
+### 5. Run Automated Tests
+```bash
+# Backend 8-point automated integration verification
 cd backend
 npm test
-# Executes the 8-point automated integration verification suite
+
+# Super Fast Mode specific verification
+npm run test:fast
+
+# Mobile application verification suite (19 tests)
+node ../mobile/test/mobile.test.mjs
 ```
 
 ---

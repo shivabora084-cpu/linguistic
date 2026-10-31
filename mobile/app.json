@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "LinguaMate AI",
+    "slug": "linguamate-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.linguamate.ai",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "LinguaMate AI requires microphone access for real-time speech translation and voice recognition."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.linguamate.ai",
+      "permissions": [
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow LinguaMate AI to securely store your credentials."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "linguamate-ai-mobile"
+      }
+    }
+  }
+}

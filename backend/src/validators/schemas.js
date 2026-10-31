@@ -20,6 +20,7 @@ export const updatePreferencesSchema = z.object({
   targetLanguage: z.string().optional(),
   theme: z.enum(['light', 'dark', 'system']).optional(),
   autoPlayAudio: z.boolean().optional(),
+  speedMode: z.enum(['fast', 'balanced']).optional(),
 });
 
 export const chatMessageSchema = z.object({
@@ -27,6 +28,7 @@ export const chatMessageSchema = z.object({
   text: z.string().min(1, 'Message text cannot be empty'),
   language: z.string().default('en'),
   inputType: z.enum(['text', 'voice']).default('text'),
+  speedMode: z.enum(['fast', 'balanced']).default('balanced'),
 });
 
 export const createConversationSchema = z.object({
@@ -40,6 +42,7 @@ export const translationSchema = z.object({
   sourceLanguage: z.string().optional(),
   formality: z.enum(['casual', 'polite', 'formal', 'auto']).default('auto'),
   context: z.string().optional().default(''),
+  speedMode: z.enum(['fast', 'balanced']).default('balanced'),
   mode: z.enum([
     'standard',
     'natural',

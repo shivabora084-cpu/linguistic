@@ -76,7 +76,7 @@ export const getConversations = async (req, res, next) => {
 
         const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
         if (!error && data) {
-          return res.json({ success: true, conversations: data || [] });
+          return res.json({ success: true, data: data || [], conversations: data || [] });
         }
       } catch (dbErr) {
         console.warn('[Get Conversations DB Warning]:', dbErr.message);
@@ -89,7 +89,7 @@ export const getConversations = async (req, res, next) => {
     if (savedOnly === 'true') {
       list = list.filter((c) => c.is_saved);
     }
-    return res.json({ success: true, conversations: list });
+    return res.json({ success: true, data: list, conversations: list });
   } catch (err) {
     next(err);
   }
@@ -146,17 +146,24 @@ export const getConversationById = async (req, res, next) => {
 export const deleteConversation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id || 'demo-user';
+    const rawUserId = req.user?.id || null;
+    const validUserId = isUUID(rawUserId) ? rawUserId : null;
 
-    if (supabase) {
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-      return res.json({ success: true, message: 'Conversation deleted successfully' });
+    if (supabase && isUUID(id)) {
+      try {
+        let query = supabase.from('conversations').delete().eq('id', id);
+        if (validUserId) {
+          query = query.eq('user_id', validUserId);
+        }
+        const { error } = await query;
+        if (!error) {
+          localConversations.delete(id);
+          localMessages.delete(id);
+          return res.json({ success: true, message: 'Conversation deleted successfully' });
+        }
+      } catch (dbErr) {
+        console.warn('[Delete Conversation DB Warning]:', dbErr.message);
+      }
     }
 
     localConversations.delete(id);

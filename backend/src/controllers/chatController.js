@@ -11,7 +11,7 @@ const isUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 export const handleChatMessage = async (req, res, next) => {
   const startTime = Date.now();
   try {
-    const { text, language = 'en', inputType = 'text' } = req.body;
+    const { text, language = 'en', inputType = 'text', speedMode = 'balanced' } = req.body;
     let conversationId = req.body.conversationId;
     const rawUserId = req.user?.id || null;
     const validUserId = isUUID(rawUserId) ? rawUserId : null;
@@ -38,12 +38,13 @@ export const handleChatMessage = async (req, res, next) => {
             conversationId = newConv.id;
           }
         } else {
+          const historyLimit = speedMode === 'fast' ? 3 : 10;
           const { data: hist } = await supabase
             .from('messages')
             .select('*')
             .eq('conversation_id', conversationId)
             .order('created_at', { ascending: true })
-            .limit(10);
+            .limit(historyLimit);
 
           if (hist) conversationHistory = hist;
         }
@@ -213,6 +214,7 @@ export const handleChatMessage = async (req, res, next) => {
         sourceDocuments: ragResult.sources,
       },
       latencyMs: Date.now() - startTime,
+      speedMode,
     });
   } catch (err) {
     next(err);

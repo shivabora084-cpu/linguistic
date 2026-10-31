@@ -484,6 +484,7 @@ export const getMe = async (req, res, next) => {
       selected_voice: 'default',
       theme: 'dark',
       target_language: userLang,
+      speed_mode: 'fast',
     };
 
     return res.json({
@@ -539,6 +540,7 @@ export const updatePreferences = async (req, res, next) => {
       target_language: updates.targetLanguage ?? existing.target_language ?? 'en',
       theme: updates.theme ?? existing.theme ?? 'dark',
       auto_play_audio: updates.autoPlayAudio ?? existing.auto_play_audio ?? false,
+      speed_mode: updates.speedMode ?? existing.speed_mode ?? 'fast',
     };
     localPreferences.set(userId, updated);
     savePreferencesToDisk();
