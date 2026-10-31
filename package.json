@@ -4,7 +4,9 @@
   "description": "LinguaMate AI - Unified Multilingual Conversational Intelligence Platform",
   "private": true,
   "scripts": {
-    "build": "npm install --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build:backend": "echo 'Backend ready'",
     "start": "node backend/src/server.js",
     "dev": "node backend/src/server.js"
   },

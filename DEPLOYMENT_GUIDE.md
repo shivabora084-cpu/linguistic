@@ -108,17 +108,26 @@ Click **Deploy site**. Once deployed, copy your Netlify URL (e.g., `https://ling
 
 ## 3. Alternative Frontend Deployment (Vercel)
 
-If deploying to Vercel instead of Netlify:
-1. Log into [Vercel Dashboard](https://vercel.com/) and click **Add New...** → **Project**.
-2. Import the repository.
-3. Configure settings:
+If deploying to Vercel:
+1. Log into the [Vercel Dashboard](https://vercel.com/) and click **Add New...** → **Project**.
+2. Import the `linguistic` repository.
+3. Configure project settings:
    - **Framework Preset**: `Vite`
    - **Root Directory**: `frontend`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-4. Set Environment Variable:
+   - **Install Command**: `npm install`
+4. Node.js Version:
+   - Under **Project Settings** → **General** → **Node.js Version**, confirm it is set to **26.x**.
+   - Note: Node.js 20.x has been discontinued by Vercel for new builds. Both `.nvmrc`, `.node-version`, and `package.json` (`"engines": { "node": "26.x" }`) are pre-configured to ensure automated compatibility.
+5. Set Environment Variable:
    - `VITE_API_BASE_URL` = `https://<your-render-app-name>.onrender.com/api`
-5. Click **Deploy**.
+6. Click **Deploy**.
+
+### Vercel Troubleshooting & Prevention:
+- **Node.js 20.x Discontinuation Error**: Ensure `"engines": { "node": "26.x" }` is present in `package.json` and select `26.x` in Vercel project settings.
+- **404 on Refresh**: `frontend/vercel.json` provides SPA rewrites (`"rewrites": [{"source": "/(.*)", "destination": "/index.html"}]`) to prevent routing 404s.
+- **Build Cache Reset**: If an earlier failed build is cached, redeploy by choosing **Redeploy with existing build cache cleared** under Vercel Deployments.
 
 ---
 

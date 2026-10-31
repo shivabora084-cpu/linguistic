@@ -70,8 +70,14 @@ Unlike conventional translation tools that translate word-for-word out of contex
 ## 🚀 Quickstart Guide
 
 ### 1. Prerequisites
-- Node.js (v18.0.0 or higher)
-- npm (v9.0.0 or higher)
+- **Node.js**: v26.x (recommended & Vercel deployment default) or v20.x+ LTS (local development)
+- **npm**: v9.0.0 or higher
+- **Engines Configuration**: Pre-configured in `package.json` and `frontend/package.json`:
+  ```json
+  "engines": {
+    "node": "26.x"
+  }
+  ```
 
 ### 2. Backend Setup
 ```bash
@@ -111,18 +117,96 @@ Run the script located at `backend/database/schema.sql` in the **Supabase SQL Ed
 
 ## ☁️ Deployment
 
-- **Frontend (Vercel)**:
-  - Root directory: `frontend`
-  - Build command: `npm run build`
-  - Output directory: `dist`
-  - Environment variable: `VITE_API_BASE_URL=https://your-backend.onrender.com/api`
+### 1. Frontend Deployment (Vercel)
 
-- **Backend (Render)**:
-  - Root directory: `backend`
-  - Environment: `Node`
-  - Build command: `npm install`
-  - Start command: `npm start`
-  - Health check path: `/api/health`
+The repository is fully configured for seamless deployment on Vercel with **Node.js 26.x**.
+
+#### Recommended Deployment Flow (Root Directory: `frontend`):
+1. Log in to [Vercel Dashboard](https://vercel.com/) and click **Add New...** → **Project**.
+2. Select your `linguistic` repository.
+3. In **Project Settings**:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: Click *Edit* and select `frontend`
+   - **Build Command**: `npm run build` (or leave default `vite build`)
+   - **Output Directory**: `dist`
+   - **Install Command**: `npm install`
+4. In **Environment Variables**, add:
+   - `VITE_API_BASE_URL` = `https://<your-render-backend>.onrender.com/api`
+5. Under **Settings** → **General** → **Node.js Version**, confirm it is set to **26.x**.
+6. Click **Deploy**.
+
+#### Alternative Monorepo Deployment (Root Directory: `./`):
+If importing from the repository root, the included root [`vercel.json`](./vercel.json) automatically orchestrates the frontend build:
+```json
+{
+  "installCommand": "cd frontend && npm install",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+---
+
+### 2. Backend Deployment (Render)
+- **Root directory**: `backend`
+- **Environment**: `Node`
+- **Build command**: `npm install`
+- **Start command**: `npm start`
+- **Health check path**: `/api/health`
+- **Environment variables**:
+  - `PORT`: `5000` (or `10000` per Render default)
+  - `NODE_ENV`: `production`
+  - `FRONTEND_URL`: `https://<your-vercel-app>.vercel.app` (or `*`)
+  - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+  - `GEMINI_API_KEY`, `AI_MODEL`: `gemini-3.5-flash-lite`
+  - `JWT_SECRET`: Random 32+ character string
+
+---
+
+## 🛠️ Vercel Troubleshooting & Prevention Guide
+
+### Issue 1: `Node.js Version "20.x" is discontinued and must be upgraded`
+- **Cause**: Vercel has discontinued support for Node.js 20.x in new build images and mandates Node.js 26.x.
+- **Prevention & Resolution**:
+  1. Both root [`package.json`](./package.json) and [`frontend/package.json`](./frontend/package.json) include:
+     ```json
+     "engines": {
+       "node": "26.x"
+     }
+     ```
+  2. Both root [`.nvmrc`](./.nvmrc), [`.node-version`](./.node-version), and `frontend/` counterparts pin the runtime to `26`.
+  3. In the Vercel Dashboard, navigate to **Project Settings** → **General** → **Node.js Version** and ensure **26.x** is selected.
+  4. Both `package-lock.json` manifests have all outdated `20.x` constraints removed.
+
+### Issue 2: `404 Not Found` on Page Refresh (e.g. `/translate`, `/two-person`, `/history`)
+- **Cause**: In single-page applications (SPAs), direct navigation to subpaths fails if the host does not route requests to `/index.html`.
+- **Prevention & Resolution**: Both [`vercel.json`](./vercel.json) and [`frontend/vercel.json`](./frontend/vercel.json) include rewrite rules:
+  ```json
+  {
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/index.html"
+      }
+    ]
+  }
+  ```
+
+### Issue 3: `Network Error` or CORS Block on Frontend API Calls
+- **Cause**: Missing or incorrect backend API URL or mismatched CORS headers.
+- **Prevention & Resolution**:
+  - In Vercel Project Settings → Environment Variables, verify `VITE_API_BASE_URL` is set to `https://<your-backend-app>.onrender.com/api`.
+  - In Render Dashboard, ensure `FRONTEND_URL` matches your deployed Vercel domain (e.g. `https://linguamate-ai.vercel.app`) or is set to `*`.
+
+### Issue 4: Stale Build Cache in Vercel
+- **Cause**: Vercel may reuse cached build steps from previous failed deployments.
+- **Resolution**:
+  - Go to **Deployments** in Vercel.
+  - Click the **...** (three dots) menu next to the latest commit.
+  - Select **Redeploy** and check the box **"Redeploy with existing build cache cleared"**.
 
 ---
 
